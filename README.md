@@ -1,50 +1,67 @@
-# Welcome to your Expo app 👋
+# RSVP React Native Reader
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A minimal, high-efficiency Rapid Serial Visual Presentation (RSVP) reader built with React Native and Expo. This app allows users to import PDFs, extract text locally using native libraries, and read using speed-reading techniques (Pivot/Spritz mode or Chunking).
 
-## Get started
+## Features
 
-1. Install dependencies
+-   **Import PDFs**: Copies files to a secure internal library.
+-   **Native Text Extraction**: Extracts text instantly without network calls or OCR (using `expo-pdf-text-extract`).
+-   **RSVP Reading Engine**:
+    -   **Variable WPM**: Adjustable speed from 100 to 1000+ WPM.
+    -   **Chunk Size**: Read 1 word (Pivot Mode) or multiple words (Centered Mode).
+-   **Library Management**: Persistent storage for your books.
+-   **Resume Progress**: Remembers exactly where you left off.
 
-   ```bash
-   npm install
-   ```
+## Prerequisites
 
-2. Start the app
+Before running this project, ensure you have the following installed:
 
-   ```bash
-   npx expo start
-   ```
+-   **Node.js**: (LTS recommended)
+-   **Watchman**: `brew install watchman` (macOS)
+-   **Xcode**: Required for iOS Simulator (macOS only).
+-   **Android Studio**: Required for Android Emulator (optional).
 
-In the output, you'll find options to open the app in a
+## Installation
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+1.  **Clone the repository**:
+    ```bash
+    git clone <repository_url>
+    cd rsvp_react_native
+    ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
 
-## Get a fresh project
+## Running the App
 
-When you're ready, run:
+> [!IMPORTANT]
+> This app uses **Native Modules** (`expo-pdf-text-extract`, `expo-file-system`). It **will not working** in the standard "Expo Go" app from the App Store. You must build a **Development Client**.
 
-```bash
-npm run reset-project
-```
+### iOS (macOS only)
+1.  Start the simulator and build the native app:
+    ```bash
+    npx expo run:ios
+    ```
+    *This command will install CocoaPods and build the iOS app locally. It may take a few minutes the first time.*
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Android
+1.  Start your Android Emulator or connect a device.
+2.  Build and run:
+    ```bash
+    npx expo run:android
+    ```
 
-## Learn more
+## Troubleshooting
 
-To learn more about developing your project with Expo, look at the following resources:
+-   **Orientation Issues**: If the app orientation feels locked or wrong, restart the metro bundler (press `r` in the terminal) after changing native config.
+-   **Missing Modules**: If you see errors about "Native module not found", ensure you are running the command `npx expo run:ios` (Prebuild) and NOT just `npx expo start`.
+-   **FileSystem Deprecation**: The app uses `expo-file-system/legacy` intentionally to avoid breaking changes in the latest Expo SDK 52+.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Project Structure
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+-   `app/`: Main application screens (Expo Router).
+-   `components/`: Reusable UI components (`RSVPReader`, `ReaderPDFViewer`).
+-   `hooks/`: Custom logic (`useRSVP` for reading engine).
+-   `utils/`: Helper functions (`storage.ts` for file system management).
