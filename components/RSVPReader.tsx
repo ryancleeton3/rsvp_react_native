@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRSVP } from '../hooks/useRSVP';
 import ReaderPDFViewer from './ReaderPDFViewer';
 import TOCModal from './TOCModal';
@@ -23,6 +23,8 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
         setWpm,
         togglePlay,
         seek,
+        chunkSize,
+        setChunkSize
     } = useRSVP(text, 350, initialIndex);
 
     const [showTOC, setShowTOC] = useState(false);
@@ -37,7 +39,6 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
     // Calculate current page based on index and pageMap
     const currentPage = useMemo(() => {
         if (!pageMap || pageMap.length === 0) return 1;
-        // Find the index in pageMap where value is <= index
         for (let i = pageMap.length - 1; i >= 0; i--) {
             if (index >= pageMap[i]) {
                 return i + 1;
@@ -46,8 +47,7 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
         return 1;
     }, [index, pageMap]);
 
-    // Logic to find pivot character
-    // Spritz algorithmish: usually around 35% into the word, but center is safer for simple UI
+    // Logic to find pivot character (Only used if chunkSize === 1)
     const pivotIndex = Math.floor((currentWord.length - 1) / 2);
     const leftPart = currentWord.slice(0, pivotIndex);
     const pivotChar = currentWord[pivotIndex];
@@ -57,11 +57,14 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
 
     const handlePageSelect = (pageIndex: number, wordIndex: number) => {
         seek(wordIndex);
-        // Note: seek updates state, but if paused, it just moves position.
     };
 
     return (
-        <View style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            contentContainerStyle={styles.contentContainer}
+            bounces={false}
+        >
             {/* Header / Close */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -73,7 +76,7 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
                         <Text style={styles.headerBtnText}>Contents</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setShowPDF(true)} style={styles.headerBtn}>
-                        <Text style={styles.headerBtnText}>View Page {currentPage}</Text>
+                        <Text style={styles.headerBtnText}>Page {currentPage}</Text>
                     </TouchableOpacity>
                 </View>
 
@@ -82,12 +85,17 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
 
             {/* Reader Area */}
             <View style={styles.readerContainer}>
-                <View style={styles.wordRow}>
-                    <Text style={[styles.wordText, styles.leftText]}>{leftPart}</Text>
-                    <Text style={[styles.wordText, styles.pivotText]}>{pivotChar}</Text>
-                    <Text style={[styles.wordText, styles.rightText]}>{rightPart}</Text>
-                </View>
-                {/* Fixed Guide Lines (optional) */}
+                {chunkSize === 1 ? (
+                    <View style={styles.wordRow}>
+                        <Text style={[styles.wordText, styles.leftText]}>{leftPart}</Text>
+                        <Text style={[styles.wordText, styles.pivotText]}>{pivotChar}</Text>
+                        <Text style={[styles.wordText, styles.rightText]}>{rightPart}</Text>
+                    </View>
+                ) : (
+                    <Text style={styles.chunkText}>{currentWord}</Text>
+                )}
+
+                {/* Guide Lines */}
                 <View style={styles.guideContainer}>
                     <View style={styles.guideTop} />
                     <View style={styles.guideBottom} />
@@ -96,31 +104,49 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
 
             {/* Controls */}
             <View style={styles.controls}>
-                {/* Progress Bar */}
                 <View style={styles.progressBarContainer}>
                     <View style={[styles.progressBarFill, { width: `${progress * 100}%` }]} />
                 </View>
 
-                {/* WPM Control */}
-                <View style={styles.wpmContainer}>
-                    <TouchableOpacity onPress={() => setWpm(Math.max(100, wpm - 25))} style={styles.btnSmall}>
-                        <Text style={styles.btnTextSmall}>-</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.wpmText}>{wpm} WPM</Text>
-                    <TouchableOpacity onPress={() => setWpm(wpm + 25)} style={styles.btnSmall}>
-                        <Text style={styles.btnTextSmall}>+</Text>
-                    </TouchableOpacity>
+                <View style={styles.settingsRow}>
+                    {/* WPM Control */}
+                    <View style={styles.settingGroup}>
+                        <Text style={styles.settingLabel}>Speed (WPM)</Text>
+                        <View style={styles.settingControls}>
+                            <TouchableOpacity onPress={() => setWpm(Math.max(100, wpm - 25))} style={styles.btnSmall}>
+                                <Text style={styles.btnTextSmall}>-</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.settingValue}>{wpm}</Text>
+                            <TouchableOpacity onPress={() => setWpm(wpm + 25)} style={styles.btnSmall}>
+                                <Text style={styles.btnTextSmall}>+</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Chunk Size Control */}
+                    <View style={styles.settingGroup}>
+                        <Text style={styles.settingLabel}>Words</Text>
+                        <View style={styles.settingControls}>
+                            <TouchableOpacity onPress={() => setChunkSize(Math.max(1, chunkSize - 1))} style={styles.btnSmall}>
+                                <Text style={styles.btnTextSmall}>-</Text>
+                            </TouchableOpacity>
+                            <Text style={styles.settingValue}>{chunkSize}</Text>
+                            <TouchableOpacity onPress={() => setChunkSize(Math.min(5, chunkSize + 1))} style={styles.btnSmall}>
+                                <Text style={styles.btnTextSmall}>+</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
                 </View>
 
-                {/* Main Play Button */}
-                <TouchableOpacity onPress={togglePlay} style={styles.playButton}>
+                {/* Play / Pause */}
+                <TouchableOpacity onPress={togglePlay} style={[styles.playButton, isPlaying ? styles.btnPause : styles.btnPlay]}>
                     <Text style={styles.playButtonText}>{isPlaying ? 'PAUSE' : 'READ'}</Text>
                 </TouchableOpacity>
 
-                {/* Seek buttons */}
+                {/* Seek */}
                 <View style={styles.seekRow}>
-                    <TouchableOpacity onPress={() => seek(index - 10)}><Text style={styles.seekText}>-10</Text></TouchableOpacity>
-                    <TouchableOpacity onPress={() => seek(index + 10)}><Text style={styles.seekText}>+10</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => seek(index - 10)} style={styles.seekBtn}><Text style={styles.seekText}>-10</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => seek(index + 10)} style={styles.seekBtn}><Text style={styles.seekText}>+10</Text></TouchableOpacity>
                 </View>
             </View>
 
@@ -139,18 +165,22 @@ export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onPro
                 onClose={() => setShowPDF(false)}
                 initialPage={currentPage}
             />
-        </View>
+        </ScrollView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#111', // Dark mode deeply
+        backgroundColor: '#111',
+    },
+    contentContainer: {
+        flexGrow: 1,
         paddingTop: 60,
         paddingBottom: 40,
         paddingHorizontal: 20,
         justifyContent: 'space-between',
+        minHeight: Dimensions.get('window').height, // Ensure it takes full height
     },
     header: {
         flexDirection: 'row',
@@ -160,28 +190,29 @@ const styles = StyleSheet.create({
     },
     headerCenter: {
         flexDirection: 'row',
-        gap: 15,
+        gap: 10,
     },
     headerBtn: {
         backgroundColor: '#333',
         paddingVertical: 6,
-        paddingHorizontal: 12,
+        paddingHorizontal: 10,
         borderRadius: 8,
     },
     headerBtnText: {
         color: '#fff',
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
     },
     closeButton: {
-        padding: 10,
+        padding: 5,
     },
     closeText: {
-        color: '#888',
-        fontSize: 16,
+        color: '#aaa',
+        fontSize: 14,
     },
     stats: {
         color: '#666',
+        fontSize: 12,
         fontVariant: ['tabular-nums'],
     },
 
@@ -190,11 +221,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
-        minHeight: 120,
+        minHeight: 150,
     },
     wordRow: {
         flexDirection: 'row',
-        alignItems: 'baseline', // or center
+        alignItems: 'baseline',
         justifyContent: 'center',
         width: '100%',
     },
@@ -202,22 +233,25 @@ const styles = StyleSheet.create({
         fontSize: 52,
         fontWeight: '600',
         color: '#eee',
-        fontFamily: 'Menlo', // Monospace helps alignment, or try standard and rely on flex
-        // On iOS standard Menlo/Courier. Android monospace.
+        // fontFamily: 'Menlo', 
+    },
+    chunkText: {
+        fontSize: 42,
+        fontWeight: '600',
+        color: '#eee',
+        textAlign: 'center',
+        paddingHorizontal: 20,
+        lineHeight: 50,
     },
     leftText: {
         textAlign: 'right',
-        width: '48%', // Leaves 4% for pivot?
+        width: '48%',
         paddingRight: 2,
     },
     pivotText: {
-        color: '#e74c3c', // Red Pivot
+        color: '#e74c3c',
         textAlign: 'center',
-        width: 40, // Fixed width for stability? Or auto.
-        // If we use flex, we need to be careful.
-        // Let's try explicit flex:
-        // flex: 0 but we want it centered exactly in the CONTAINER.
-        // Using widths is safer:
+        width: 40,
     },
     rightText: {
         textAlign: 'left',
@@ -231,25 +265,26 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: '50%',
         width: 2,
-        // transform: [{translateX: -1}],
         alignItems: 'center',
         justifyContent: 'center',
         opacity: 0.1,
+        zIndex: -1,
     },
     guideTop: {
         width: 2,
-        height: 10,
+        height: 12,
         backgroundColor: '#fff',
     },
     guideBottom: {
         width: 2,
-        height: 10,
+        height: 12,
         backgroundColor: '#fff',
-        marginTop: 80,
+        marginTop: 90,
     },
 
     controls: {
         gap: 20,
+        marginTop: 20,
     },
     progressBarContainer: {
         height: 4,
@@ -262,51 +297,79 @@ const styles = StyleSheet.create({
         backgroundColor: '#e74c3c',
     },
 
-    wpmContainer: {
+    settingsRow: {
         flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 20,
+        justifyContent: 'space-between',
+        gap: 15,
     },
-    btnSmall: {
-        padding: 10,
-        backgroundColor: '#222',
-        borderRadius: 8,
-        width: 44,
+    settingGroup: {
+        flex: 1,
         alignItems: 'center',
+        backgroundColor: '#222',
+        padding: 12,
+        borderRadius: 12,
+    },
+    settingLabel: {
+        color: '#888',
+        fontSize: 10,
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    settingControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+
+    btnSmall: {
+        backgroundColor: '#333',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     btnTextSmall: {
         color: '#fff',
         fontSize: 18,
+        marginTop: -3,
     },
-    wpmText: {
-        color: '#bbb',
-        fontSize: 18,
+    settingValue: {
+        color: '#fff',
+        fontSize: 16,
         fontWeight: 'bold',
-        width: 100,
+        minWidth: 40,
         textAlign: 'center',
     },
 
     playButton: {
-        backgroundColor: '#fff',
-        paddingVertical: 16,
+        paddingVertical: 18,
         borderRadius: 16,
         alignItems: 'center',
+    },
+    btnPlay: {
+        backgroundColor: '#fff',
+    },
+    btnPause: {
+        backgroundColor: '#e74c3c',
     },
     playButtonText: {
         color: '#000',
         fontSize: 20,
         fontWeight: 'bold',
-        letterSpacing: 1,
+        letterSpacing: 2,
     },
 
     seekRow: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        marginTop: 10,
+    },
+    seekBtn: {
+        padding: 10,
     },
     seekText: {
-        color: '#555',
+        color: '#666',
+        fontSize: 14,
     }
-
 });

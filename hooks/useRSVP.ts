@@ -4,6 +4,7 @@ export function useRSVP(text: string, initialWpm: number = 300, initialIndex: nu
     const [isPlaying, setIsPlaying] = useState(false);
     const [index, setIndex] = useState(initialIndex);
     const [wpm, setWpm] = useState(initialWpm);
+    const [chunkSize, setChunkSize] = useState(1);
 
     // Split text into words, filter empty strings
     const words = useMemo(() => {
@@ -15,14 +16,15 @@ export function useRSVP(text: string, initialWpm: number = 300, initialIndex: nu
 
     useEffect(() => {
         if (isPlaying && words.length > 0) {
-            const interval = 60000 / wpm;
+            const interval = (60000 / wpm) * chunkSize;
             timerRef.current = setInterval(() => {
                 setIndex((prev) => {
-                    if (prev >= words.length - 1) {
+                    const nextIndex = prev + chunkSize;
+                    if (nextIndex >= words.length) {
                         setIsPlaying(false);
-                        return prev;
+                        return Math.min(nextIndex, words.length); // Cap at end
                     }
-                    return prev + 1;
+                    return nextIndex;
                 });
             }, interval);
         } else {
@@ -36,7 +38,7 @@ export function useRSVP(text: string, initialWpm: number = 300, initialIndex: nu
                 clearInterval(timerRef.current);
             }
         };
-    }, [isPlaying, wpm, words.length]);
+    }, [isPlaying, wpm, words.length, chunkSize]);
 
     const play = () => setIsPlaying(true);
     const pause = () => setIsPlaying(false);
@@ -52,15 +54,18 @@ export function useRSVP(text: string, initialWpm: number = 300, initialIndex: nu
         setIsPlaying(true);
     }
 
-    const currentWord = words[index] || '';
+    // Get the current chunk of words
+    const currentChunk = words.slice(index, index + chunkSize).join(' ');
 
     return {
-        currentWord,
+        currentWord: currentChunk, // Renaming for compatibility or we can change consumer
         index,
         totalWords: words.length,
         isPlaying,
         wpm,
         setWpm,
+        chunkSize,
+        setChunkSize,
         play,
         pause,
         togglePlay,

@@ -3,7 +3,7 @@
     "name": "rsvp_react_native",
     "slug": "rsvp_react_native",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "rsvpreactnative",
     "userInterfaceStyle": "automatic",
