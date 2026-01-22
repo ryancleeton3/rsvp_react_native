@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRSVP } from '../hooks/useRSVP';
+import ReaderPDFViewer from './ReaderPDFViewer';
+import TOCModal from './TOCModal';
 
 interface RSVPReaderProps {
     text: string;
+    uri: string;
     onClose?: () => void;
     initialIndex?: number;
     onProgress?: (index: number, total: number) => void;
+    pageMap?: number[];
 }
 
-export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress }: RSVPReaderProps) {
+export default function RSVPReader({ text, uri, onClose, initialIndex = 0, onProgress, pageMap = [] }: RSVPReaderProps) {
     const {
         currentWord,
         index,
@@ -21,12 +25,26 @@ export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress
         seek,
     } = useRSVP(text, 350, initialIndex);
 
+    const [showTOC, setShowTOC] = useState(false);
+    const [showPDF, setShowPDF] = useState(false);
+
     React.useEffect(() => {
         if (onProgress) {
             onProgress(index, totalWords);
         }
     }, [index, totalWords, onProgress]);
 
+    // Calculate current page based on index and pageMap
+    const currentPage = useMemo(() => {
+        if (!pageMap || pageMap.length === 0) return 1;
+        // Find the index in pageMap where value is <= index
+        for (let i = pageMap.length - 1; i >= 0; i--) {
+            if (index >= pageMap[i]) {
+                return i + 1;
+            }
+        }
+        return 1;
+    }, [index, pageMap]);
 
     // Logic to find pivot character
     // Spritz algorithmish: usually around 35% into the word, but center is safer for simple UI
@@ -37,6 +55,11 @@ export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress
 
     const progress = totalWords > 0 ? index / totalWords : 0;
 
+    const handlePageSelect = (pageIndex: number, wordIndex: number) => {
+        seek(wordIndex);
+        // Note: seek updates state, but if paused, it just moves position.
+    };
+
     return (
         <View style={styles.container}>
             {/* Header / Close */}
@@ -44,6 +67,16 @@ export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                     <Text style={styles.closeText}>✕ Close</Text>
                 </TouchableOpacity>
+
+                <View style={styles.headerCenter}>
+                    <TouchableOpacity onPress={() => setShowTOC(true)} style={styles.headerBtn}>
+                        <Text style={styles.headerBtnText}>Contents</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setShowPDF(true)} style={styles.headerBtn}>
+                        <Text style={styles.headerBtnText}>View Page {currentPage}</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <Text style={styles.stats}>{index + 1} / {totalWords}</Text>
             </View>
 
@@ -90,6 +123,22 @@ export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress
                     <TouchableOpacity onPress={() => seek(index + 10)}><Text style={styles.seekText}>+10</Text></TouchableOpacity>
                 </View>
             </View>
+
+            {/* Modals */}
+            <TOCModal
+                visible={showTOC}
+                onClose={() => setShowTOC(false)}
+                pageMap={pageMap}
+                currentPage={currentPage}
+                onSelectPage={handlePageSelect}
+            />
+
+            <ReaderPDFViewer
+                visible={showPDF}
+                uri={uri}
+                onClose={() => setShowPDF(false)}
+                initialPage={currentPage}
+            />
         </View>
     );
 }
@@ -108,6 +157,21 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: 20,
+    },
+    headerCenter: {
+        flexDirection: 'row',
+        gap: 15,
+    },
+    headerBtn: {
+        backgroundColor: '#333',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    headerBtnText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
     },
     closeButton: {
         padding: 10,
