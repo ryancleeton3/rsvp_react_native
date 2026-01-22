@@ -5,9 +5,11 @@ import { useRSVP } from '../hooks/useRSVP';
 interface RSVPReaderProps {
     text: string;
     onClose?: () => void;
+    initialIndex?: number;
+    onProgress?: (index: number, total: number) => void;
 }
 
-export default function RSVPReader({ text, onClose }: RSVPReaderProps) {
+export default function RSVPReader({ text, onClose, initialIndex = 0, onProgress }: RSVPReaderProps) {
     const {
         currentWord,
         index,
@@ -17,7 +19,14 @@ export default function RSVPReader({ text, onClose }: RSVPReaderProps) {
         setWpm,
         togglePlay,
         seek,
-    } = useRSVP(text, 350);
+    } = useRSVP(text, 350, initialIndex);
+
+    React.useEffect(() => {
+        if (onProgress) {
+            onProgress(index, totalWords);
+        }
+    }, [index, totalWords, onProgress]);
+
 
     // Logic to find pivot character
     // Spritz algorithmish: usually around 35% into the word, but center is safer for simple UI

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-export function useRSVP(text: string, initialWpm: number = 300) {
+export function useRSVP(text: string, initialWpm: number = 300, initialIndex: number = 0) {
     const [isPlaying, setIsPlaying] = useState(false);
-    const [index, setIndex] = useState(0);
+    const [index, setIndex] = useState(initialIndex);
     const [wpm, setWpm] = useState(initialWpm);
 
     // Split text into words, filter empty strings
@@ -11,7 +11,7 @@ export function useRSVP(text: string, initialWpm: number = 300) {
         return text.replace(/\s+/g, ' ').trim().split(' ');
     }, [text]);
 
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<any>(null);
 
     useEffect(() => {
         if (isPlaying && words.length > 0) {
