@@ -2,6 +2,7 @@ import RSVPReader from '@/components/RSVPReader';
 import { Book, clearLibrary, deleteBook, getLibrary, saveBookToLibrary, updateBookProgress } from '@/utils/storage';
 import * as DocumentPicker from 'expo-document-picker';
 import { extractTextFromPage, getPageCount, isAvailable } from 'expo-pdf-text-extract';
+import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
@@ -154,85 +155,94 @@ export default function Index() {
     loadLibrary();
   };
 
-  if (text && currentBook) {
-    return (
-      <RSVPReader
-        text={text}
-        uri={currentBook.uri}
-        onClose={closeReader}
-        initialIndex={currentBook.lastIndex}
-        onProgress={handleProgress}
-        pageMap={activePageMap}
-      />
-    );
-  }
+  const isReading = text && currentBook;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>RSVP Reader</Text>
-        <Text style={styles.subtitle}>Library</Text>
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Library',
+          headerShown: !isReading
+        }}
+      />
 
-        <View style={styles.card}>
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={pickAndImportDocument}
-            disabled={loading}
-          >
-            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>+ Import PDF</Text>}
-          </TouchableOpacity>
+      {isReading ? (
+        <RSVPReader
+          text={text!}
+          uri={currentBook!.uri}
+          onClose={closeReader}
+          initialIndex={currentBook!.lastIndex}
+          onProgress={handleProgress}
+          pageMap={activePageMap}
+        />
+      ) : (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.content}>
+            <Text style={styles.title}>RSVP Reader</Text>
+            <Text style={styles.subtitle}>Library</Text>
 
-          {!isAvailable() && (
-            <View style={styles.warningBox}>
-              <Text style={styles.warningText}>
-                ⚠️ Native module missing. Run dev build.
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Library Section */}
-        <View style={styles.libraryContainer}>
-          <View style={styles.libraryHeader}>
-            <Text style={styles.libraryTitle}>My Books</Text>
-            {library.length > 0 && (
-              <TouchableOpacity onPress={handleClearLibrary}>
-                <Text style={styles.clearText}>Clear All</Text>
+            <View style={styles.card}>
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={pickAndImportDocument}
+                disabled={loading}
+              >
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>+ Import PDF</Text>}
               </TouchableOpacity>
-            )}
-          </View>
 
-          {library.length === 0 ? (
-            <Text style={styles.emptyText}>No books imported</Text>
-          ) : (
-            <FlatList
-              data={library}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <View style={styles.bookItem}>
-                  <TouchableOpacity
-                    style={styles.bookInfo}
-                    onPress={() => openBook(item)}
-                  >
-                    <Text style={styles.bookName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.bookProgress}>
-                      {Math.round(item.lastIndex / item.totalWords * 100)}% • {item.totalWords} words
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => handleDeleteBook(item.id)}
-                    style={styles.deleteBtn}
-                  >
-                    <Text style={styles.deleteText}>🗑️</Text>
-                  </TouchableOpacity>
+              {!isAvailable() && (
+                <View style={styles.warningBox}>
+                  <Text style={styles.warningText}>
+                    ⚠️ Native module missing. Run dev build.
+                  </Text>
                 </View>
               )}
-            />
-          )}
-        </View>
-      </View>
-    </SafeAreaView>
+            </View>
+
+            {/* Library Section */}
+            <View style={styles.libraryContainer}>
+              <View style={styles.libraryHeader}>
+                <Text style={styles.libraryTitle}>My Books</Text>
+                {library.length > 0 && (
+                  <TouchableOpacity onPress={handleClearLibrary}>
+                    <Text style={styles.clearText}>Clear All</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {library.length === 0 ? (
+                <Text style={styles.emptyText}>No books imported</Text>
+              ) : (
+                <FlatList
+                  data={library}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <View style={styles.bookItem}>
+                      <TouchableOpacity
+                        style={styles.bookInfo}
+                        onPress={() => openBook(item)}
+                      >
+                        <Text style={styles.bookName} numberOfLines={1}>{item.name}</Text>
+                        <Text style={styles.bookProgress}>
+                          {Math.round(item.lastIndex / item.totalWords * 100)}% • {item.totalWords} words
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => handleDeleteBook(item.id)}
+                        style={styles.deleteBtn}
+                      >
+                        <Text style={styles.deleteText}>🗑️</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              )}
+            </View>
+          </View>
+        </SafeAreaView>
+      )}
+    </>
   );
 }
 
