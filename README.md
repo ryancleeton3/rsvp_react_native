@@ -46,6 +46,21 @@ Before running this project, ensure you have the following installed:
     ```
     *This command will install CocoaPods and build the iOS app locally. It may take a few minutes the first time.*
 
+### Running on Physical iPhone
+1.  **Plug in your iPhone** via USB.
+2.  **Enable Developer Mode** on your iPhone (Settings > Privacy & Security > Developer Mode).
+3.  **Run the device build command**:
+    ```bash
+    npx expo run:ios --device
+    ```
+4.  **Select your device** from the list.
+5.  **Code Signing**: If the build fails due to signing errors (common for physical devices):
+    -   Open `ios/rsvp_react_native.xcworkspace` in **Xcode**.
+    -   Click the project name on the left sidebar.
+    -   Go to **Signing & Capabilities**.
+    -   Select your **Team** (you can use a free Apple ID account).
+    -   Run the command again.
+
 ### Android
 1.  Start your Android Emulator or connect a device.
 2.  Build and run:
